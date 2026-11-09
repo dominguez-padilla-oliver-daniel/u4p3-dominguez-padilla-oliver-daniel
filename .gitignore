@@ -5,3 +5,5 @@ staticfiles/
 venv/
 .env.exampledb.sqlite3
 data.json
+*.pyc
+scratch/
