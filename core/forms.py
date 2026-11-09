@@ -2,8 +2,9 @@
 from django import forms
 # ValidationError: la excepción que Django usa para reportar un error de validación
 from django.core.exceptions import ValidationError
+from django.forms import inlineformset_factory
 # Servicio: el modelo de la Unidad 2, importado desde este mismo directorio
-from .models import Servicio
+from .models import Servicio, Categoria, Factura, DetalleFactura
 
 
 # ServicioForm: el mismo ModelForm del paso 01, ahora con una regla extra
@@ -25,3 +26,35 @@ class ServicioForm(forms.ModelForm):
             raise ValidationError('El precio debe ser mayor a 0.')
         # si no se disparó el error, hay que devolver el valor limpio para que el formulario lo use
         return precio
+
+class CategoriaForm(forms.ModelForm):
+    class Meta:
+        model = Categoria
+        fields = ['nombre', 'descripcion']
+        widgets = {'descripcion': forms.Textarea(attrs={'rows': 2})}
+
+class FacturaForm(forms.ModelForm):
+    class Meta:
+        model = Factura
+        fields = ['cliente', 'fecha']
+        widgets = {'fecha': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d')}
+
+class DetalleFacturaForm(forms.ModelForm):
+    class Meta:
+        model = DetalleFactura
+        fields = ['servicio', 'cantidad']
+
+    def __init__(self, *args, usuario=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['servicio'].queryset = Servicio.objects.filter(propietario=usuario).select_related('categoria')
+        self.fields['servicio'].label_from_instance = lambda s: f'{s.titulo} — ${s.precio}'
+
+DetalleFormSet = inlineformset_factory(
+    Factura,
+    DetalleFactura,
+    form=DetalleFacturaForm,
+    extra=3,
+    min_num=1,
+    validate_min=True,
+    can_delete=False,
+)
